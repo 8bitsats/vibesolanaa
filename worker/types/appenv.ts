@@ -10,5 +10,6 @@ export type AppEnv = {
         sessionId: string | null;
         config: GlobalConfigurableSettings;
         authLevel: AuthRequirement;
+        cfAccessEmail?: string;
     }
 }

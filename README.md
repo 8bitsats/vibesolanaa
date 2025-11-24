@@ -90,6 +90,8 @@ Once you click "Deploy to Cloudflare", you'll be taken to your Cloudflare dashbo
 - `SANDBOX_INSTANCE_TYPE` - Container performance tier (optional, see section below)
 - `ALLOWED_EMAIL` - Email address of the user allowed to use the app. This is used to verify the user's identity and prevent unauthorized access.
 - `CUSTOM_DOMAIN` - Custom domain for your app that you have configured in Cloudflare (**Required**). If you use a first-level subdomain such as `abc.xyz.com`, make sure the Advanced Certificate Manager add-on is active on that zone.
+- `CF_ACCESS_ID` - Cloudflare Access Audience (AUD) tag (optional, for JWT validation)
+- `CF_ACCESS_SECRET` - Cloudflare Access secret (optional, reserved for future use)
 
 ### Custom domain DNS setup
 
@@ -194,6 +196,71 @@ OAuth configuration is **not** shown on the initial deploy page. If you want use
    ```
 4. Redeploy or restart local development so the new variables take effect.
 
+### 🔒 Cloudflare Access Setup (Optional)
+
+Cloudflare Access provides an additional layer of security by requiring users to authenticate before accessing your application. When enabled, Access validates JWT tokens automatically added by Cloudflare's edge network.
+
+**Why Use Cloudflare Access:**
+
+- Adds enterprise-grade authentication layer before your application
+- Validates users against your identity providers (Google, GitHub, Okta, etc.)
+- No code changes needed in your application routes
+- JWT validation happens at the edge for better security
+
+**Setup Instructions:**
+
+1. **Enable Cloudflare Access on your domain:**
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → Zero Trust → Access
+   - Navigate to Applications and create a new application
+   - Select "Self-hosted" application type
+   - Configure your application:
+     - Application name: `vibesolanaa` (or your preferred name)
+     - Session duration: Configure as needed
+     - Application domain: `*-vibesolanaa.darkx402.workers.dev` (your Workers domain)
+
+2. **Configure Access Policies:**
+   - Create an Access policy to control who can access your application
+   - Options include:
+     - Email addresses or domains
+     - Identity provider groups (Google Workspace, Azure AD, etc.)
+     - IP ranges
+     - Country restrictions
+
+3. **Get your Access credentials:**
+   - In the Application settings, find:
+     - **Audience (AUD) tag** - Example: `91dd860be421417a087a5b7c627f4c788f6f0fbcd098ff28bb86daf1cbdfadb3`
+     - **JWKs URL** - Example: `https://darkx402.cloudflareaccess.com/cdn-cgi/access/certs`
+
+4. **Configure environment variables:**
+   Add to your `.dev.vars` (local) or via `wrangler secret` (production):
+   ```bash
+   CF_ACCESS_ID="91dd860be421417a087a5b7c627f4c788f6f0fbcd098ff28bb86daf1cbdfadb3"
+   CF_ACCESS_SECRET="placeholder"  # Reserved for future use
+   ```
+
+   **For Production:**
+   ```bash
+   wrangler secret put CF_ACCESS_ID
+   # Enter your audience tag when prompted
+
+   wrangler secret put CF_ACCESS_SECRET
+   # Enter "placeholder" when prompted
+   ```
+
+5. **How it works:**
+   - When Access is enabled, Cloudflare's edge automatically adds the `Cf-Access-Jwt-Assertion` header to all requests
+   - Your Worker validates this JWT token against Cloudflare's public keys
+   - Only requests with valid JWT tokens from authenticated users are allowed
+   - If validation fails, users receive a 401 Unauthorized response
+
+**Testing:**
+
+- Access your application through the configured domain
+- You should be redirected to Cloudflare Access login
+- After authenticating, you'll be redirected back with a valid JWT
+- The application will validate the JWT and grant access
+
+**Note:** Cloudflare Access JWT validation is optional. If `CF_ACCESS_ID` is not configured, the application will work normally without this additional authentication layer.
 
 ---
 ## 🎨 How It Works

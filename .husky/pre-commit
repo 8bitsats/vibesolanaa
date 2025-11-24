@@ -1,1 +1,6 @@
+#!/bin/sh
+# Load bun into PATH for GitHub Desktop and other GUI Git clients
+export PATH="$HOME/.bun/bin:$PATH"
+
+# Run tests with bun
 bun test
